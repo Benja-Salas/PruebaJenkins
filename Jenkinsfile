@@ -1,64 +1,53 @@
-pipeline {
-    agent any
+#!groovy
 
-    stages {
-        stage('Integration') {
-            steps {
-                script {
-                    echo "Cloning the repository..."
-                    git url: 'https://github.com/tu-usuario/tu-repositorio.git', branch: 'main'
-                }
-            }
-        }
-        
-        stage('Build') {
-            steps {
-                script {
-                    echo "Building the project..."
-                    // Aquí podrías compilar el proyecto si fuera necesario
-                }
-            }
-        }
-        
-        stage('Test') {
-            steps {
-                script {
-                    try {
-                        echo "Running tests..."
-                        sh 'python3 -m unittest discover'
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        error "Tests failed"
-                    }
-                }
-            }
-        }
-        
-        stage('Deploy') {
-            when {
-                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
-            }
-            steps {
-                script {
-                    echo "Building Docker image..."
-                    sh 'docker build -t tu-usuario/tu-imagen:latest .'
-                    
-                    echo "Pushing Docker image to Docker Hub..."
-                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_HUB_PASSWORD')]) {
-                        sh 'docker login -u tu-usuario -p $DOCKER_HUB_PASSWORD'
-                        sh 'docker push tu-usuario/tu-imagen:latest'
-                    }
-                }
-            }
-        }
-    }
-    
-    post {
-        failure {
-            echo "The build has failed."
-        }
-        success {
-            echo "The build was successful."
-        }
-    }
+node {
+   // ------------------------------------
+   // -- ETAPA: Compilar
+   // ------------------------------------
+   stage 'Compilar'
+   
+   // -- Configura variables
+   echo 'Configurando variables'
+   def mvnHome = tool 'M3'
+   env.PATH = "${mvnHome}/bin:${env.PATH}"
+   echo "var mvnHome='${mvnHome}'"
+   echo "var env.PATH='${env.PATH}'"
+   
+   // -- Descarga código desde SCM
+   echo 'Descargando código de SCM'
+   sh 'rm -rf *'
+   checkout scm
+   
+   // -- Compilando
+   echo 'Compilando aplicación'
+   sh 'mvn clean compile'
+   
+   // ------------------------------------
+   // -- ETAPA: Test
+   // ------------------------------------
+   stage 'Test'
+   echo 'Ejecutando tests'
+   try{
+      sh 'mvn verify'
+      step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
+   }catch(err) {
+      step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
+      if (currentBuild.result == 'UNSTABLE')
+         currentBuild.result = 'FAILURE'
+      throw err
+   }
+   
+   // ------------------------------------
+   // -- ETAPA: Instalar
+   // ------------------------------------
+   stage 'Instalar'
+   echo 'Instala el paquete generado en el repositorio maven'
+   sh 'mvn install -Dmaven.test.skip=true'
+   
+   // ------------------------------------
+   // -- ETAPA: Archivar
+   // ------------------------------------
+   stage 'Archivar'
+   echo 'Archiva el paquete el paquete generado en Jenkins'
+   step([$class: 'ArtifactArchiver', artifacts: '**/target/*.jar, **/target/*.war', fingerprint: true])
 }
