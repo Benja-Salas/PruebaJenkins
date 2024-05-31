@@ -3,62 +3,55 @@ pipeline {
 
     stages {
         stage('Integration') {
-            steps {
-                script {
-                    echo "Cloning the repository..."
-                    git url: 'https://github.com/tu-usuario/tu-repositorio.git', branch: 'main'
+            stages {
+                stage('Checkout') {
+                    steps {
+                        // Obtener el código del repositorio
+                        git url: 'https://github.com/Benja-Salas/PruebaJenkins.git', branch: 'palomo'
+                    }
                 }
-            }
-        }
-        
-        stage('Build') {
-            steps {
-                script {
-                    echo "Building the project..."
-                    // Aquí podrías compilar el proyecto si fuera necesario
+                stage('Compile') {
+                    steps {
+                        echo 'Compiling...'
+                        // Para un proyecto Python, esto podría incluir la instalación de dependencias
+                    }
                 }
-            }
-        }
-        
-        stage('Test') {
-            steps {
-                script {
-                    try {
-                        echo "Running tests..."
-                        sh 'python3 -m unittest discover'
-                    } catch (Exception e) {
-                        currentBuild.result = 'FAILURE'
-                        error "Tests failed"
+                stage('Unit Test') {
+                    steps {
+                        echo 'Running Unit Tests...'
+                        sh 'python -m unittest discover'
                     }
                 }
             }
         }
-        
+
         stage('Deploy') {
             when {
-                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+                expression {
+                    // Continuar solo si las pruebas unitarias pasan
+                    currentBuild.result == null || currentBuild.result == 'SUCCESS'
+                }
             }
             steps {
                 script {
-                    echo "Building Docker image..."
-                    sh 'docker build -t tu-usuario/tu-imagen:latest .'
-                    
-                    echo "Pushing Docker image to Docker Hub..."
-                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_HUB_PASSWORD')]) {
-                        sh 'docker login -u tu-usuario -p $DOCKER_HUB_PASSWORD'
-                        sh 'docker push tu-usuario/tu-imagen:latest'
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                        def app = docker.build("usuario/my-python-app:${env.BUILD_NUMBER}")
+                        app.push()
                     }
                 }
             }
         }
     }
-    
+
     post {
-        failure {
-            echo "The build has failed."
+        always {
+            echo 'This will always run'
         }
         success {
-            echo "The build was successful."
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
