@@ -10,15 +10,16 @@ pipeline {
                         git url: 'https://github.com/Benja-Salas/PruebaJenkins.git', branch: 'palomo'
                     }
                 }
-                stage('Compile') {
-                    steps {
-                        echo 'Compiling...'
-                        // Para un proyecto Python, esto podría incluir la instalación de dependencias
-                    }
-                }
                 stage('Unit Test') {
+                    agent {
+                        docker {
+                            image 'python:3.8-slim'
+                            args '-v /var/run/docker.sock:/var/run/docker.sock'
+                        }
+                    }
                     steps {
                         echo 'Running Unit Tests...'
+                        sh 'pip install -r requirements.txt || true'
                         sh 'python -m unittest discover'
                     }
                 }
