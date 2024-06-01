@@ -19,7 +19,7 @@ pipeline {
                     sh 'java Helloworld'
                     // Crear un nuevo contenedor
                     docker.build("contenedor-prueba")
-                    docker.withRegistry('https://hub.docker.com', 'benjasalas') {
+                    docker.withRegistry('https://hub.docker.com', 'docker-credentials') {
                         docker.image("contenedor-prueba").push('latest')
                     }
                 }
