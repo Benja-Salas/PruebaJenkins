@@ -10,7 +10,7 @@ pipeline {
         }
         stage('Compilación') {
             steps {
-                sh 'javac HelloWorld.java'
+                sh 'javac Helloworld.java'
             }
         }
         stage('Despliegue') {
