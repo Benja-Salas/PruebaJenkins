@@ -5,10 +5,10 @@ FROM openjdk:11
 WORKDIR /usr/src/app
 
 # Copiar el archivo de código fuente Java al contenedor
-COPY HelloWorld.java .
+COPY Helloworld.java .
 
 # Compilar la aplicación
-RUN javac HelloWorld.java
+RUN javac Helloworld.java
 
 # CMD para ejecutar la aplicación cuando se inicie el contenedor
-CMD ["java", "HelloWorld"]
+CMD ["java", "Helloworld"]
