@@ -16,7 +16,7 @@ pipeline {
         stage('Despliegue') {
             steps {
                 script {
-                    sh 'java HelloWorld'
+                    sh 'java Helloworld'
                     // Crear un nuevo contenedor
                     docker.build("contenedor-prueba")
                     docker.withRegistry('https://hub.docker.com', 'benjasalas') {
