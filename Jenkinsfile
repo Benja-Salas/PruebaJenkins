@@ -2,50 +2,28 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+        stage('Integración') {
             steps {
-                // Obtener el código del repositorio
-                git url: 'https://github.com/Benja-Salas/PruebaJenkins.git', branch: 'main'
+                git branch: 'master', url: 'https://github.com/Benja-Salas/PruebaJenkins.git'
+                // Puedes agregar más pasos de integración aquí si es necesario
             }
         }
-        stage('Unit Test') {
+        stage('Compilación') {
             steps {
-                // Ejecutar las pruebas unitarias dentro de un contenedor Docker
+                sh 'javac HelloWorld.java'
+            }
+        }
+        stage('Despliegue') {
+            steps {
                 script {
-                    docker.image('python:3.8-slim').inside {
-                        sh 'pip install -r requirements.txt || true'
-                        sh 'python -m unittest discover'
+                    sh 'java HelloWorld'
+                    // Crear un nuevo contenedor
+                    docker.build("nombre_de_tu_contenedor")
+                    docker.withRegistry('https://tu_dockerhub', 'tu_credencial_dockerhub') {
+                        docker.image("nombre_de_tu_contenedor").push('latest')
                     }
                 }
             }
-        }
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    docker.build("benjasalas/my-python-app:${env.BUILD_NUMBER}")
-                }
-            }
-        }
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                        docker.image("benjasalas/my-python-app:${env.BUILD_NUMBER}").push()
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'This will always run'
-        }
-        success {
-            echo 'Pipeline succeeded!'
-        }
-        failure {
-            echo 'Pipeline failed!'
         }
     }
 }
